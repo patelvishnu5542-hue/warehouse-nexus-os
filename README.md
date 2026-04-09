@@ -11,7 +11,10 @@ Warehouse Nexus OS is a **multi-agent warehouse order-fulfillment simulator**. I
 - A clear progression from **baseline → logical planning → LLM-driven control**
 - A **points-based reward** that can be used to **train / optimize** policies
 - A deployment-ready **OpenEnv-compatible** HTTP environment + web UI demo
+## 🌐 have a look a live training of ai 
+https://vishnupatel-warehouse-nexus-os.hf.space/ui/
 
+---
 ## Links (submission)
 - GitHub: `https://github.com/patelvishnu5542-hue/warehouse-nexus-os`
 - HF Space (page): `https://huggingface.co/spaces/Vishnupatel/warehouse-nexus-os`
