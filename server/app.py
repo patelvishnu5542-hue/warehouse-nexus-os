@@ -193,7 +193,21 @@ async def root():
         return FileResponse(str(index_html))
     return {"status": "ok", "service": "warehouse-nexus-os"}
 
+
+@app.get("/web")
+@app.get("/web/")
+async def web_ui():
+    """
+    Compatibility route: OpenEnv's optional "web interface" hits `/web`.
+    Serve the same UI bundle here.
+    """
+    index_html = _UI_DIST / "index.html"
+    if index_html.is_file():
+        return FileResponse(str(index_html))
+    return {"detail": "Not Found"}
+
 @app.get("/health")
+
 async def health():
     # OpenEnv runtime validation expects {"status":"healthy"}.
     return {"status": "healthy"}
