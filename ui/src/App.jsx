@@ -15,12 +15,13 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [level, setLevel] = useState(2);
-  const [mode, setMode] = useState('logic'); // dumb | logic | ai
+  const [mode, setMode] = useState('ai'); // dumb | logic | ai (server will confirm)
   const [hasToken, setHasToken] = useState(false);
   const [modelName, setModelName] = useState('');
   const [benchmark, setBenchmark] = useState(null);
   const [apiOnline, setApiOnline] = useState(true);
   const [apiError, setApiError] = useState('');
+  const [showAiPopup, setShowAiPopup] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +64,14 @@ function App() {
     return () => clearInterval(interval);
   }, [API_BASE_URL]);
 
+  useEffect(() => {
+    if (mode === 'ai') {
+      setShowAiPopup(true);
+    } else {
+      setShowAiPopup(false);
+    }
+  }, [mode]);
+
   const handleStartStop = async () => {
     try {
       const endpoint = isRunning ? 'stop' : 'start';
@@ -78,6 +87,7 @@ function App() {
       if (typeof statusData.model === 'string') setModelName(statusData.model);
       setApiOnline(true);
       setApiError('');
+      if (!isRunning && statusData.mode === 'ai') setShowAiPopup(true);
     } catch (e) {
       console.error('Start/stop failed', e);
       setApiOnline(false);
@@ -141,13 +151,49 @@ function App() {
 
   return (
     <div className="dashboard">
+      {showAiPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: '24px'
+          }}
+          onClick={() => setShowAiPopup(false)}
+        >
+          <div
+            className="glass-panel"
+            style={{ maxWidth: '720px', width: '100%', padding: '18px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ fontWeight: 800, letterSpacing: '0.04em' }}>AI MODE ACTIVE</div>
+              <button className="btn btn-secondary" onClick={() => setShowAiPopup(false)}>CLOSE</button>
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '12px', opacity: 0.9, lineHeight: 1.5 }}>
+              This demo uses a real LLM controller via the <b>OpenAI Python client</b> (OpenAI-compatible endpoint).
+              The environment provides a <b>points-based reward stream</b> (shown on the left) that represents the
+              training signal you would use for RL or iterative improvement. The model is not updated online in this demo.
+              {mode === 'ai' && !hasToken && (
+                <div style={{ marginTop: '10px', color: 'var(--accent)' }}>
+                  HF_TOKEN is not set → AI will fall back to the Logical controller.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <header className="header">
         <div className="title">WAREHOUSE NEXUS OS</div>
         <div className="controls">
-          {isThinking && (
+          {isThinking && mode === 'ai' && (
             <div className="thinking-indicator">
               <span className="dot"></span>
-              MODEL ANALYZING...
+              AI ANALYZING (REWARD-DRIVEN)...
             </div>
           )}
           {!apiOnline && (
