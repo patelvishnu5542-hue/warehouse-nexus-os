@@ -15,7 +15,7 @@ Required environment variables:
 - HF_TOKEN: API key for authentication
 
 Optional environment variables:
-- ENV_URL: Environment server URL (your HF Space). Default: http://localhost:8004
+- ENV_URL: Environment server URL (your HF Space). Default: http://localhost:7860
 """
 
 import json
@@ -35,7 +35,7 @@ API_KEY = os.environ.get("HF_TOKEN") or os.environ.get("API_KEY") or os.environ.
 LOCAL_IMAGE_NAME = os.environ.get("LOCAL_IMAGE_NAME", "")
 
 # Environment URL - should point to your deployed HF Space
-_port = os.environ.get("PORT", "8004")
+_port = os.environ.get("PORT", "7860")
 ENV_URL = os.environ.get("ENV_URL") or os.environ.get("PING_URL") or f"http://localhost:{_port}"
 BENCHMARK = "warehouse_fulfillment"
 
@@ -188,6 +188,8 @@ def run_episode(
 
                 if done:
                     score = float(step_data.get("info", {}).get("final_score") or 0.0)
+                    # Validator requires 0 < score < 1 (not exactly 0.0 or 1.0)
+                    score = min(max(score, 0.01), 0.99)
                     success = score >= 0.5
             except Exception as e:
                 rewards.append(0.0)
@@ -202,12 +204,16 @@ def run_episode(
                     # If server exposes final_score in metrics (optional), use it; else leave score as-is.
                     if "final_score" in metrics:
                         score = float(metrics.get("final_score") or 0.0)
+                        score = min(max(score, 0.01), 0.99)
                         success = score >= 0.5
             except Exception:
                 pass
     except Exception as e:
         fatal_error = fatal_error or str(e)
     finally:
+        # Even if the server didn't provide a score (e.g. early failure), keep it strictly inside (0,1).
+        score = float(score or 0.0)
+        score = min(max(score, 0.01), 0.99)
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
     return {

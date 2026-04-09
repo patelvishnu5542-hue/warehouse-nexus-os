@@ -50,6 +50,7 @@ reward_logs = [] # Global storage for point logs
 current_level = int(os.getenv("DEFAULT_LEVEL", "2"))
 agent_mode = os.getenv("AGENT_MODE", "logic").lower()  # dumb | logic | ai
 env = get_env_for_level(current_level)
+env_lock = asyncio.Lock()
 
 # OpenEnv task selection / episode tracking
 BENCHMARK_NAME = "warehouse_fulfillment"
@@ -167,7 +168,8 @@ def _safe_json_actions(raw_response: str) -> List[str]:
 
 @app.get("/state")
 async def get_state():
-    return env.state()
+    async with env_lock:
+        return env.state()
 
 @app.get("/")
 async def root():
@@ -237,7 +239,8 @@ async def get_logs():
 
 @app.post("/action")
 async def take_action(request: ActionRequest):
-    state, reward, done, info = env.step(request.action)
+    async with env_lock:
+        state, reward, done, info = env.step(request.action)
     if info.get("result") == "success":
         add_log(f"Action: {request.action}")
     return {"status": "success", "reward": reward, "done": done, "info": info}
@@ -260,8 +263,9 @@ async def reset_env(request: Optional[ResetRequest] = None) -> ResetResponse:
         # keep previous max_steps unless a known task_id is provided
         env = get_env_for_level(current_level)
 
-    env.reset()
-    episode_steps_taken = 0
+    async with env_lock:
+        env.reset()
+        episode_steps_taken = 0
 
     return ResetResponse(
         observation=env.state(),
@@ -279,7 +283,8 @@ async def step_multi(request: StepRequest) -> StepResponse:
     OpenEnv-style endpoint: apply one environment step for all workers.
     """
     global episode_steps_taken
-    state, reward_value, done_env, info_list = env.step_multi(request.actions)
+    async with env_lock:
+        state, reward_value, done_env, info_list = env.step_multi(request.actions)
     episode_steps_taken += 1
     done = bool(done_env) or episode_steps_taken >= episode_max_steps
 
@@ -312,7 +317,8 @@ async def step_multi(request: StepRequest) -> StepResponse:
 
 @app.get("/metrics")
 async def get_metrics():
-    return {**env.metrics, "final_score": WarehouseGrader.grade(current_level, env.metrics)}
+    async with env_lock:
+        return {**env.metrics, "final_score": WarehouseGrader.grade(current_level, env.metrics)}
 
 @app.get("/reward_logs")
 async def get_reward_logs():
@@ -342,7 +348,7 @@ async def get_config():
 
 @app.post("/config")
 async def set_config(request: ConfigRequest):
-    global env, logs, reward_logs, current_level, agent_mode, is_running, is_thinking
+    global env, logs, reward_logs, current_level, agent_mode, is_thinking, current_task_id, episode_max_steps, episode_steps_taken
 
     level = int(request.level)
     mode = str(request.mode).lower().strip()
@@ -351,15 +357,34 @@ async def set_config(request: ConfigRequest):
     if mode not in ("dumb", "logic", "ai"):
         return {"status": "error", "error": "mode must be dumb, logic, or ai"}
 
-    # stop loop, reset env
-    is_running = False
     is_thinking = False
     current_level = level
     agent_mode = mode
     logs.clear()
     reward_logs.clear()
-    env = get_env_for_level(current_level)
-    return {"status": "ok", "level": current_level, "mode": agent_mode, "has_hf_token": bool(hf_token), "model": MODEL_NAME}
+    # Reset environment on config changes so mode differences are immediately visible.
+    async with env_lock:
+        env = get_env_for_level(current_level)
+        env.reset()
+        episode_steps_taken = 0
+        # Keep OpenEnv task metadata aligned with the selected level.
+        if current_level == 1:
+            current_task_id = "task_easy_level1"
+        elif current_level == 2:
+            current_task_id = "task_medium_level2"
+        else:
+            current_task_id = "task_hard_level3"
+        episode_max_steps = int(TASKS[current_task_id]["max_steps"])
+
+    return {
+        "status": "ok",
+        "level": current_level,
+        "mode": agent_mode,
+        "has_hf_token": bool(hf_token),
+        "model": MODEL_NAME,
+        "task_id": current_task_id,
+        "max_steps": int(episode_max_steps),
+    }
 
 @app.get("/benchmark")
 async def benchmark(level: Optional[int] = None, steps: int = 80, ai_steps: int = 10, seed: int = 42):
@@ -420,7 +445,8 @@ async def simulation_loop():
     global is_running
     while is_running:
         try:
-            state_dict = env.state().model_dump()
+            async with env_lock:
+                state_dict = env.state().model_dump()
             
             # 1. Get Actions from Gemini (Batch for all agents)
             actions_to_execute = []
@@ -449,9 +475,10 @@ async def simulation_loop():
             finally:
                 is_thinking = False
                 
-            # 2. Execute Batch Actions
+                # 2. Execute Batch Actions
             if actions_to_execute:
-                new_state, reward, done, info_list = env.step_multi(actions_to_execute)
+                async with env_lock:
+                    new_state, reward, done, info_list = env.step_multi(actions_to_execute)
                 
                 # Append new reward events to global reward_log
                 for info in info_list:
@@ -502,7 +529,7 @@ async def stop_sim():
 def main() -> None:
     import uvicorn
 
-    port = int(os.getenv("PORT", "8004"))
+    port = int(os.getenv("PORT", "7860"))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 

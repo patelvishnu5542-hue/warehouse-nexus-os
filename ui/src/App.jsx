@@ -5,7 +5,7 @@ function App() {
   const API_BASE_URL = (() => {
     const configured = import.meta.env.VITE_API_URL;
     if (configured) return String(configured).replace(/\/$/, '');
-    if (import.meta.env.DEV) return 'http://localhost:8004';
+    if (import.meta.env.DEV) return 'http://localhost:7860';
     return window.location.origin.replace(/\/$/, '');
   })();
   const [state, setState] = useState(null);

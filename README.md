@@ -29,10 +29,10 @@ Levels are configured in `warehouse_env/levels.py`.
 
 ```bash
 cd <repo-root>
-./venv/bin/python -m server
+PORT=7860 ./venv/bin/python -m server
 ```
 
-Backend runs on `http://localhost:8004` (or `http://localhost:$PORT` if `PORT` is set).
+Backend runs on `http://localhost:7860`.
 
 Optional environment variables:
 - `API_BASE_URL`: LLM endpoint (default: Hugging Face Serverless Inference)
@@ -41,12 +41,30 @@ Optional environment variables:
 - `DEFAULT_LEVEL`: 1/2/3 (default: 2)
 - `AGENT_MODE`: dumb/logic/ai (default: logic)
 
+### Run with Docker (what judges use)
+
+Build:
+
+```bash
+docker build -t warehouse-openenv .
+```
+
+Run:
+
+```bash
+docker run --rm -p 7860:7860 -e PORT=7860 warehouse-openenv
+```
+
+Open:
+- UI: `http://localhost:7860/ui`
+- Health: `http://localhost:7860/health`
+
 ### 2) Frontend (React + Vite)
 
 ```bash
 cd <repo-root>/ui
 npm install
-VITE_API_URL=http://localhost:8004 npm run dev
+VITE_API_URL=http://localhost:7860 npm run dev
 ```
 
 UI runs on `http://localhost:5174`.
@@ -66,7 +84,7 @@ For OpenEnv compliance, the `/step` endpoint also returns a normalized `reward.v
 
 ```bash
 cd <repo-root>
-ENV_URL=http://localhost:8004 API_BASE_URL=... MODEL_NAME=... HF_TOKEN=... ./venv/bin/python inference.py
+ENV_URL=http://localhost:7860 API_BASE_URL=... MODEL_NAME=... HF_TOKEN=... ./venv/bin/python inference.py
 ```
 
 ## Built-in comparison
@@ -85,12 +103,23 @@ From the backend:
 - Exclude large local artifacts (`venv/`, `ui/node_modules/`, `*.log`) when zipping; `.dockerignore` is included.
 - If `ui/dist` exists, the backend serves it at `GET /ui`.
 
+## Run on Hugging Face Spaces
+
+- Space page (human): `https://huggingface.co/spaces/<namespace>/warehouse-nexus-os`
+- Runtime URL (validator/inference): `https://<namespace>-warehouse-nexus-os.hf.space`
+- Our UI: `https://<namespace>-warehouse-nexus-os.hf.space/ui`
+
+Set these Space variables/secrets (required by the hackathon rules):
+- `API_BASE_URL`
+- `MODEL_NAME`
+- `HF_TOKEN`
+
 ## Local pre-validation
 
 With the backend running:
 
 ```bash
-ENV_URL=http://localhost:8004 python3 prevalidate_local.py
+ENV_URL=http://localhost:7860 python3 prevalidate_local.py
 ```
 
 ## Submission validator (what the judges run)
@@ -103,7 +132,7 @@ Your Space must:
 Quick manual checks:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8004/reset -H "Content-Type: application/json" -d '{}'
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:7860/reset -H "Content-Type: application/json" -d '{}'
 python3 -m pip install openenv-core
 openenv validate
 ```

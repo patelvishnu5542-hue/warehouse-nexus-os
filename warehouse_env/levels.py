@@ -26,7 +26,10 @@ class WarehouseGrader:
     @staticmethod
     def grade(level: int, metrics: Dict[str, Any]) -> float:
         """
-        Returns a score from 0.0 to 1.0 based on metrics.
+        Returns a score strictly within (0, 1) based on metrics.
+
+        Hackathon validator requires task scores to be strictly between 0 and 1
+        (not exactly 0.0 and not exactly 1.0).
         """
         completed = int(metrics.get("completed", 0) or 0)
         points = float(metrics.get("points", 0.0) or 0.0)
@@ -42,8 +45,15 @@ class WarehouseGrader:
             score = min(1.0, (completed / 15.0) * (points / 500.0 if points > 0 else 0.1))
         else:
             score = 0.0
-            
-        return float(max(0.0, score))
+
+        # Ensure score is strictly within (0, 1)
+        eps = 1e-4
+        score = float(score)
+        if score <= 0.0:
+            return eps
+        if score >= 1.0:
+            return 1.0 - eps
+        return score
 
 def get_env_for_level(level: int) -> WarehouseEnv:
     config = getattr(LevelConfig, f"LEVEL_{level}", LevelConfig.LEVEL_1)

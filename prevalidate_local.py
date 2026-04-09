@@ -7,7 +7,7 @@ import httpx
 
 
 def main() -> int:
-    base_url = os.environ.get("ENV_URL", "http://localhost:8004").rstrip("/")
+    base_url = os.environ.get("ENV_URL", "http://localhost:7860").rstrip("/")
     client = httpx.Client(timeout=20.0)
 
     r = client.get(f"{base_url}/health")
@@ -50,4 +50,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
