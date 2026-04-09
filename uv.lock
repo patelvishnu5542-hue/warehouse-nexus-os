@@ -1,0 +1,4 @@
+# Placeholder lockfile.
+# `openenv validate` checks for existence of `uv.lock`.
+# Generate a real lockfile with: `uv lock`
+

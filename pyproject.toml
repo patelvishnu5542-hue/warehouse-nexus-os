@@ -1,0 +1,23 @@
+[project]
+name = "warehouse-fulfillment-openenv"
+version = "1.0.0"
+description = "OpenEnv-compatible multi-agent warehouse fulfillment environment (FastAPI)."
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi",
+  "httpx",
+  "openai",
+  "openenv-core>=0.2.0",
+  "pydantic>=2",
+  "python-multipart",
+  "pyyaml",
+  "uvicorn",
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+

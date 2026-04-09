@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Local envs
+venv/
+.venv/
+.venv_openenv/
+
+# Logs
+*.log
+server_*.log
+vite_*.log
+server_logs.txt
+vite_logs.txt
+
+# macOS
+.DS_Store
+
+# Node
+ui/node_modules/
+ui/.vite/
+
+# Secrets
+.env

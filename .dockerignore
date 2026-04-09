@@ -1,0 +1,16 @@
+.DS_Store
+**/.DS_Store
+
+__pycache__/
+**/__pycache__/
+*.pyc
+
+venv/
+.venv_openenv/
+ui/node_modules/
+
+*.log
+server_*.log
+vite_*.log
+server_logs.txt
+vite_logs.txt
