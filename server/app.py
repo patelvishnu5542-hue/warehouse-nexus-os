@@ -1,3 +1,4 @@
+import re
 import asyncio
 import os
 import json
@@ -176,7 +177,6 @@ def _safe_json_actions(raw_response: str) -> List[str]:
             return [str(x) for x in parsed]
     except Exception:
         pass
-    import re
     return re.findall(r"(\w+\(.*\))", raw)
 
 @app.get("/state")
@@ -207,7 +207,6 @@ async def web_ui():
     return {"detail": "Not Found"}
 
 @app.get("/health")
-
 async def health():
     # OpenEnv runtime validation expects {"status":"healthy"}.
     return {"status": "healthy"}
