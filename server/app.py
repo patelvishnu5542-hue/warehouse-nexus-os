@@ -91,14 +91,17 @@ logical_agent = LogicalAgent()
 last_performance = {"action": "None", "reward": 0.0, "status": "Idle"}
 logs = []
 
-# HuggingFace Serverless Inference Configuration
-hf_token = os.getenv("HF_TOKEN", "") # Make sure to set your HF_TOKEN in environment
-api_base_url = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/v1/")
+# HuggingFace/OpenAI-compatible Inference Configuration
+hf_token = (os.getenv("HF_TOKEN") or "").strip()  # required for real AI mode
+api_base_url = (os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1").strip()
+MODEL_NAME = (os.getenv("MODEL_NAME") or os.getenv("HF_MODEL") or "Qwen/Qwen2.5-72B-Instruct").strip()
+
+# Important: HF Spaces UI sometimes stores variables with a trailing newline when copy/pasted.
+# The OpenAI client (httpx) rejects base_url values with non-printable characters.
 client = OpenAI(
     base_url=api_base_url,
-    api_key=hf_token or "dummy-token-to-prevent-crash" # Note: Needs a valid token to work
+    api_key=hf_token or "dummy-token-to-prevent-crash",
 )
-MODEL_NAME = os.getenv("MODEL_NAME", os.getenv("HF_MODEL", "Qwen/Qwen2.5-72B-Instruct"))
 
 def state_to_prompt(state_dict: dict) -> str:
     prompt = "You are a Warehouse Logistics Strategist. Your goal is to EXCEL in efficiency.\n"
