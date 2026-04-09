@@ -172,7 +172,7 @@ This project is designed to make “training by points” practical:
   - **RL**: optimize a policy that outputs action strings (MAPPO-style multi-agent training works well)
   - **LLM policy improvement**: improve prompts/tools to reduce invalid actions and increase reward
 
-## Validation 
+## Validation
 ```bash
 bash scripts/validate-submission.sh https://vishnupatel-warehouse-nexus-os.hf.space .
 ```

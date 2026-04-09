@@ -53,7 +53,7 @@ simulation_task = None
 is_thinking = False
 reward_logs = [] # Global storage for point logs
 current_level = int(os.getenv("DEFAULT_LEVEL", "2"))
-agent_mode = os.getenv("AGENT_MODE", "logic").lower()  # dumb | logic | ai
+agent_mode = (os.getenv("AGENT_MODE") or "").lower().strip()  # dumb | logic | ai
 env = get_env_for_level(current_level)
 env_lock = asyncio.Lock()
 
@@ -100,6 +100,10 @@ logs = []
 hf_token = (os.getenv("HF_TOKEN") or "").strip()  # required for real AI mode
 api_base_url = (os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1").strip()
 MODEL_NAME = (os.getenv("MODEL_NAME") or os.getenv("HF_MODEL") or "Qwen/Qwen2.5-72B-Instruct").strip()
+
+# Default to AI when a token exists (unless AGENT_MODE is explicitly set).
+if not agent_mode:
+    agent_mode = "ai" if hf_token else "logic"
 
 # Important: HF Spaces UI sometimes stores variables with a trailing newline when copy/pasted.
 # The OpenAI client (httpx) rejects base_url values with non-printable characters.
@@ -454,16 +458,18 @@ async def simulation_loop():
     while is_running:
         try:
             async with env_lock:
-                state_dict = env.state().model_dump()
+                state = env.state()
+            state_dict = state.model_dump()
             
             # 1. Get Actions from Gemini (Batch for all agents)
             actions_to_execute = []
             global is_thinking
-            is_thinking = True
+            is_thinking = False
             try:
                 if agent_mode in ("dumb", "logic"):
-                    actions_to_execute = _get_mode_actions(env.state())
+                    actions_to_execute = _get_mode_actions(state)
                 elif agent_mode == "ai" and hf_token:
+                    is_thinking = True
                     prompt = state_to_prompt(state_dict)
                     response = client.chat.completions.create(
                         model=MODEL_NAME,
@@ -475,11 +481,11 @@ async def simulation_loop():
                     actions_to_execute = _safe_json_actions(raw_response)
                 else:
                     # ai mode but no token: fallback to logical heuristic
-                    actions_to_execute = _get_mode_actions(env.state())
+                    actions_to_execute = _get_mode_actions(state)
             except Exception as e:
                 print(f"LLM API Error: {e}")
-                for w_id in range(len(state_dict['workers'])):
-                    actions_to_execute.append(heuristic_agent.get_action(env.state(), w_id))
+                for w in state.workers:
+                    actions_to_execute.append(heuristic_agent.get_action(state, w.id))
             finally:
                 is_thinking = False
                 
