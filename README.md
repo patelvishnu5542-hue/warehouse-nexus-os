@@ -2,6 +2,7 @@
 title: Warehouse Nexus OS
 sdk: docker
 app_port: 7860
+base_path: /web
 ---
 
 # Warehouse Nexus OS (OpenEnv Submission)

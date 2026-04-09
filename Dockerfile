@@ -19,3 +19,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:${PORT}/health || exit 1
 
 CMD ["python", "-m", "server"]
+
+ENV ENABLE_WEB_INTERFACE=true
