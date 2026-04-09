@@ -40,6 +40,11 @@ app.add_middleware(
 _UI_DIST = Path(__file__).resolve().parents[1] / "ui" / "dist"
 if _UI_DIST.is_dir():
     app.mount("/ui", StaticFiles(directory=str(_UI_DIST), html=True), name="ui")
+    # Vite build uses absolute `/assets/...` paths by default. Mount assets at the root
+    # so `/ui` works without requiring a custom Vite base path.
+    _UI_ASSETS = _UI_DIST / "assets"
+    if _UI_ASSETS.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_UI_ASSETS)), name="assets")
 
 # Initialize environment
 # Simulation state
