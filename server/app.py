@@ -6,6 +6,7 @@ from openai import OpenAI
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -185,7 +186,11 @@ async def get_state():
 
 @app.get("/")
 async def root():
-    # Health endpoint for Spaces "ping" checks
+    # Render the UI by default on Hugging Face Spaces (better UX than raw JSON).
+    # If the UI isn't built, fall back to a simple JSON response.
+    index_html = _UI_DIST / "index.html"
+    if index_html.is_file():
+        return FileResponse(str(index_html))
     return {"status": "ok", "service": "warehouse-nexus-os"}
 
 @app.get("/health")
